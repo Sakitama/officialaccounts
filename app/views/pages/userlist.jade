@@ -1,0 +1,17 @@
+extend ../layout
+
+block content
+    .container
+        .row
+            table.table.table-hover.table-bordered
+                thead
+                    tr
+                        th 用户名
+                        th 注册时间
+                        th 最近修改时间
+                    tbody
+                        each item in users
+                            tr(class="item-id-#{item._id}")
+                                td #{item.name}
+                                td #{item.meta.createAt}
+                                td #{item.meta.updateAt}

@@ -1,0 +1,108 @@
+doctype
+html
+    head
+        title 语音搜电影
+        meta(charset="UTF-8")
+        meta(name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0")
+        script(src="http://ajax.aspnetcdn.com/ajax/jQuery/jquery-3.1.1.min.js")
+        script(src="http://res.wx.qq.com/open/js/jweixin-1.0.0.js")
+        script.
+            wx.config({
+                debug: false, // 开启调试模式,调用的所有api的返回值会在客户端alert出来，若要查看传入的参数，可以在pc端打开，参数信息会通过log打出，仅在pc端时才会打印。
+                appId: "wxeabf7da22d88014a", // 必填，公众号的唯一标识
+                timestamp: "#{timestamp}", // 必填，生成签名的时间戳
+                nonceStr: "#{noncestr}", // 必填，生成签名的随机串
+                signature: "#{signature}",// 必填，签名，见附录1
+                jsApiList: [
+                    "startRecord",
+                    "stopRecord",
+                    "onVoiceRecordEnd",
+                    "translateVoice"
+                ] // 必填，需要使用的JS接口列表，所有JS接口列表见附录2
+            });
+            wx.ready(() => {
+                // config信息验证后会执行ready方法，所有接口调用都必须在config接口获得结果之后，config是一个客户端的异步操作，所以如果需要在页面加载时就调用相关接口，则须把相关接口放在ready函数中调用来确保正确执行。对于用户触发时才调用的接口，则可以直接调用，不需要放在ready函数中。
+                wx.checkJsApi({
+                    jsApiList: ['startRecord', 'stopRecord', 'onVoiceRecordEnd', 'translateVoice'], // 需要检测的JS接口列表，所有JS接口列表见附录2,
+                    success: (res) => {
+                        // 以键值对的形式返回，可用的api值true，不可用为false
+                        // 如：{"checkResult":{"chooseImage":true},"errMsg":"checkJsApi:ok"}
+                        console.log(res);
+                    }
+                });
+                let isRecording = false;
+                $(".button").on("click", () => {
+                    if (!isRecording) {
+                        wx.startRecord({
+                            cancel: () => {
+                                alert("你妹的，不就是录个音嘛，小气！");
+                            }
+                        });
+                    } else {
+                        wx.stopRecord({
+                            success: (res) => {
+                                let localId = res.localId;
+                                wx.translateVoice({
+                                    localId: localId, // 需要识别的音频的本地Id，由录音相关接口获得
+                                    isShowProgressTips: 1, // 默认为1，显示进度提示
+                                    success: function (res) {
+                                        $.ajax({
+                                            type: "get",
+                                            url: `https://api.douban.com/v2/movie/search?q=${res.translateResult}`,
+                                            dataType: "jsonp",
+                                            jsonp: "callback",
+                                            success: (data) => {
+                                                let subject = data.subjects[0];
+                                                $("#title").text(subject.title);
+                                                $("#year").text(`年份：${subject.year}`);
+                                                let str = "";
+                                                subject.directors.forEach((item) => {
+                                                    str += item.name + " ";
+                                                });
+                                                $("#directors").text(`导演：${str}`);
+                                                str = "";
+                                                subject.casts.forEach((item) => {
+                                                    str += item.name + " ";
+                                                });
+                                                $("#casts").text(`主演：${str}`);
+                                                $("#poster").html(`<img src="${subject.images.large}" alt="${res.translateResult}">`);
+                                            }
+                                        });
+                                    },
+                                    fail: () => {
+                                        alert("不好意思，您所说的我没有听懂，请您再试一次！");
+                                    }
+                                });
+                            },
+                            fail: () => {
+                                alert("录制失败");
+                            }
+                        });
+                    }
+                    isRecording = !isRecording;
+                });
+            });
+        style.
+            .button {
+                text-align: center;
+                height: 2em;
+                line-height: 2em;
+                color: white;
+                border-radius: 10px;
+            }
+
+            .blue, .blue:visited {
+                background-color: #2981e4;
+            }
+
+            .blue:hover {
+                background-color: #2575cf;
+            }
+    body
+        div.button.blue 点我开始录音，再次点击结束录音
+        p#title
+        p#year
+        p#directors
+        p#casts
+        div#poster
+

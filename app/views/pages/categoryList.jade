@@ -1,0 +1,13 @@
+extend ../layout
+
+block content
+    .container
+        .row
+            table.table.table-hover.table-bordered
+                thead
+                    tr
+                        th 分类名字
+                    tbody
+                        each item in categories
+                            tr(class="item-id-#{item._id}")
+                                td #{item.name}
